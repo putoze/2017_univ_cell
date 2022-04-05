@@ -2,15 +2,16 @@
 `define CYCLE      10.0          	  // Modify your clock period here
 `define SDFFILE    "../SYN/DT_syn.sdf"	  // Modify your sdf file name
 `define End_CYCLE  100000000             // Modify cycle times once your design need more cycle times!
+`define  TB1
 
 `ifdef TB1
-	`define PAT        "./Geometry_sti.dat"
-	`define FWEXP        "./Geometry_fwexp.dat"
-	`define BCEXP        "./Geometry_bcexp.dat"
+	`define PAT        "D:/IC_contest/2017_univ_cell/2017_IC_CONTEST_Distance_transform/dat/Geometry_sti.dat"
+	`define FWEXP        "D:/IC_contest/2017_univ_cell/2017_IC_CONTEST_Distance_transform/dat/Geometry_fwexp.dat"
+	`define BCEXP        "D:/IC_contest/2017_univ_cell/2017_IC_CONTEST_Distance_transform/dat/Geometry_bcexp.dat"
 `elsif TB2
-`define PAT        "./dat/ICC17_sti.dat"
-	`define FWEXP        "./dat/ICC17_fwexp.dat"
-	`define BCEXP        "./dat/ICC17_bcexp.dat" //"D:/IC_contest/2017_univ_cell/2017_IC_CONTEST_Distance_transform/dat/ICC17_bcexp.dat"
+`define PAT        "D:/IC_contest/2017_univ_cell/2017_IC_CONTEST_Distance_transform/dat/ICC17_sti.dat"
+	`define FWEXP        "D:/IC_contest/2017_univ_cell/2017_IC_CONTEST_Distance_transform/dat/ICC17_fwexp.dat"
+	`define BCEXP        "D:/IC_contest/2017_univ_cell/2017_IC_CONTEST_Distance_transform/dat/ICC17_bcexp.dat" //"D:/IC_contest/2017_univ_cell/2017_IC_CONTEST_Distance_transform/dat/ICC17_bcexp.dat"
 `endif
 
        module testfixture;
@@ -71,20 +72,20 @@
          begin
            #(`CYCLE/2) clk = ~clk;
          end
-/*
-         initial
-         begin
-`ifdef FSDB
-           $fsdbDumpfile("DT.fsdb");
-           $fsdbDumpvars;
-           $fsdbDumpMDA(u_sti_ROM.sti_M);
-           $fsdbDumpMDA(u_res_RAM.res_M);
-           `elsif VCD
-                  $dumpfile("DT.vcd");
-           $dumpvars;
-`endif
-         end
-         */
+         /*
+                  initial
+                  begin
+         `ifdef FSDB
+                    $fsdbDumpfile("DT.fsdb");
+                    $fsdbDumpvars;
+                    $fsdbDumpMDA(u_sti_ROM.sti_M);
+                    $fsdbDumpMDA(u_res_RAM.res_M);
+                    `elsif VCD
+                           $dumpfile("DT.vcd");
+                    $dumpvars;
+         `endif
+                  end
+                  */
 
          initial
          begin  // data input
