@@ -76,9 +76,9 @@ module DT(input 			clk,
 
   //OUTPUT
   assign done = DONE_state;
-  assign sti_rd = FETCH_ROM_FORWARD_state | FETCH_ROM_BACKWARD_state;
+  assign sti_rd = next_state == FETCH_ROM_FORWARD || next_state == FETCH_ROM_BACKWARD;
   assign res_wr = FORWARD_state | BACKWARD_state;
-  assign res_rd = skip_f_flag ? 0 : (FETCH_REG_FORWARD_state | FETCH_REG_BACKWARD_state) ? 1 : 0;
+  assign res_rd = skip_f_flag ? 0 : (next_state == FETCH_REG_FORWARD || next_state == FETCH_REG_BACKWARD) ? 1 : 0;
 
   /*
           case (fetch_ram_counter_reg)
@@ -99,7 +99,7 @@ module DT(input 			clk,
   //res_addr
   always @(*)
   begin
-    if (FORWARD_state)
+    if (FETCH_REG_FORWARD_state)
     begin
       case (fetch_ram_counter_reg)
         'd0:
@@ -114,27 +114,30 @@ module DT(input 			clk,
           res_addr = 'd0;
       endcase
     end
-    else if(BACKWARD_state)
+    else if(FETCH_REG_BACKWARD_state)
     begin
-      if(f_r_f_done)
-      begin
-        res_addr = ram_addr_index_reg;
-      end
-      else
-      begin
-        case (fetch_ram_counter_reg)
-          'd0:
-            res_addr = ram_addr_index_reg + 'd1;
-          'd1:
-            res_addr = ram_addr_index_reg + 'd127;
-          'd2:
-            res_addr = ram_addr_index_reg + 'd128;
-          'd3:
-            res_addr = ram_addr_index_reg + 'd129;
-          default:
-            res_addr = 'd0;
-        endcase
-      end
+      case (fetch_ram_counter_reg)
+        'd0:
+          res_addr = ram_addr_index_reg + 'd1;
+        'd1:
+          res_addr = ram_addr_index_reg + 'd127;
+        'd2:
+          res_addr = ram_addr_index_reg + 'd128;
+        'd3:
+          res_addr = ram_addr_index_reg + 'd129;
+        'd4:
+          res_addr = ram_addr_index_reg;
+        default:
+          res_addr = 'd0;
+      endcase
+    end
+    else if(BACKWARD_state | FORWARD_state)
+    begin
+      res_addr = ram_addr_index_reg;
+    end
+    else
+    begin
+      res_addr = 'd0;
     end
   end
 
