@@ -91,7 +91,8 @@ module DT(input 			clk,
   */
 
   //sti_addr
-  always @(*) begin
+  always @(*)
+  begin
     sti_addr = sti_rd ? rom_addr_index_reg : 'd0;
   end
 
@@ -179,7 +180,7 @@ module DT(input 			clk,
       begin
         next_state = forward_done ? BACKWARD_PREPROCESS : f_r_f_start ? FETCH_ROM_FORWARD : FETCH_REG_FORWARD;
       end
-      BACKWARD:
+      BACKWARD_PREPROCESS:
       begin
         next_state = FETCH_ROM_BACKWARD;
       end
@@ -272,7 +273,7 @@ module DT(input 			clk,
     begin
       rom_addr_index_reg <= 'd0;
     end
-    else if(FETCH_REG_FORWARD_state)
+    else if(FETCH_ROM_FORWARD_state)
     begin
       rom_addr_index_reg <= rom_addr_index_reg + 'd1;
     end
