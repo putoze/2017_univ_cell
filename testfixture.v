@@ -5,13 +5,13 @@
 `define  TB1
 
 `ifdef TB1
-	`define PAT        "D:/IC_contest/2017_univ_cell/2017_IC_CONTEST_Distance_transform/dat/Geometry_sti.dat"
-	`define FWEXP        "D:/IC_contest/2017_univ_cell/2017_IC_CONTEST_Distance_transform/dat/Geometry_fwexp.dat"
-	`define BCEXP        "D:/IC_contest/2017_univ_cell/2017_IC_CONTEST_Distance_transform/dat/Geometry_bcexp.dat"
+	`define PAT        "D:/IC_contest/2017_IC_CONTEST_Distance_transform/dat/Geometry_sti.dat"
+	`define FWEXP        "D:/IC_contest/2017_IC_CONTEST_Distance_transform/dat/Geometry_fwexp.dat"
+	`define BCEXP        "D:/IC_contest/2017_IC_CONTEST_Distance_transform/dat/Geometry_bcexp.dat"
 `elsif TB2
-`define PAT        "D:/IC_contest/2017_univ_cell/2017_IC_CONTEST_Distance_transform/dat/ICC17_sti.dat"
-	`define FWEXP        "D:/IC_contest/2017_univ_cell/2017_IC_CONTEST_Distance_transform/dat/ICC17_fwexp.dat"
-	`define BCEXP        "D:/IC_contest/2017_univ_cell/2017_IC_CONTEST_Distance_transform/dat/ICC17_bcexp.dat" //"D:/IC_contest/2017_univ_cell/2017_IC_CONTEST_Distance_transform/dat/ICC17_bcexp.dat"
+`define PAT        "D:/IC_contest/2017_IC_CONTEST_Distance_transform/dat/ICC17_sti.dat"
+	`define FWEXP        "D:/IC_contest/2017_IC_CONTEST_Distance_transform/dat/ICC17_fwexp.dat"
+	`define BCEXP        "D:/IC_contest/2017_IC_CONTEST_Distance_transform/dat/ICC17_bcexp.dat" //"D:/IC_contest/2017_univ_cell/2017_IC_CONTEST_Distance_transform/dat/ICC17_bcexp.dat"
 `endif
 
        module testfixture;

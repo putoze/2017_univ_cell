@@ -45,8 +45,8 @@ module DT(input 			clk,
   assign forward_done = (ram_addr_index_reg == 'd16383);
   assign f_r_f_start = (counter_reg == 'd15);
 
-  assign f_r_b_done = (fetch_ram_counter_reg == 'd4 || sti_di_reg[rom_addr_index_reg] == 'd0);
-  assign backward_done = (ram_addr_index_reg == 'd16383);
+  assign f_r_b_done = (fetch_ram_counter_reg == 'd4 || not_object);
+  assign backward_done = (ram_addr_index_reg == 'd0);
   assign f_r_b_start = (counter_reg == 'd0);
 
   //state
@@ -272,7 +272,7 @@ module DT(input 			clk,
     begin
       rom_addr_index_reg <= 'd0;
     end
-    else if(FETCH_ROM_BACKWARD_state)
+    else if(FETCH_REG_FORWARD_state)
     begin
       rom_addr_index_reg <= rom_addr_index_reg + 'd1;
     end
@@ -280,7 +280,7 @@ module DT(input 			clk,
     begin
       rom_addr_index_reg <= 'd1023;
     end
-    else if(BACKWARD_state)
+    else if(FETCH_ROM_BACKWARD_state)
     begin
       rom_addr_index_reg <= rom_addr_index_reg - 'd1;
     end
