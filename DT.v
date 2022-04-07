@@ -1,14 +1,14 @@
-module DT(input 			clk,
-            input			reset,
-            output	        done,
-            output			sti_rd,
-            output	reg 	[9:0]	sti_addr,
-            input		[15:0]	sti_di,
-            output			res_wr,
-            output			res_rd,
-            output	reg 	[13:0]	res_addr,
-            output	reg 	[7:0]	res_do,
-            input		[7:0]	res_di);
+module DT  (input 		     	    clk,
+              input			          reset,
+              output	            done,
+              output			        sti_rd,
+              output	    [9:0]	  sti_addr,
+              input		    [15:0]	sti_di,
+              output			        res_wr,
+              output			        res_rd,
+              output	    [13:0]	res_addr,
+              output	reg [7:0]	  res_do,
+              input		    [7:0]	  res_di);
 
 
   /*----------PARAMETERS--------*/
@@ -30,9 +30,8 @@ module DT(input 			clk,
   reg[15:0] sti_di_reg;
   reg[7:0]  for_back_reg[0:3];
   reg[7:0]  ref_and_temp_reg;
-  reg[7:0]  min_temp_wire_b3_reg;
   reg[3:0]  current_state,next_state;
-  reg delay_clock_reg;
+  reg backward_start;
 
   //flag
   wire  f_r_f_done,forward_done,f_r_f_start;
@@ -40,7 +39,15 @@ module DT(input 			clk,
   wire  skip_f_flag = rom_addr_index_reg == 'd0;
   wire  skip_b_flag = rom_addr_index_reg == 'd1023;
   wire  not_object = sti_di_reg[counter_reg] == 0 ;
-  wire  delay_clock_inverse;
+  reg   pad_max_flag;
+
+  assign f_r_f_done = (fetch_ram_counter_reg == 'd3 | not_object);
+  assign forward_done = (ram_addr_index_reg == 'd16383);
+  assign f_r_f_start = (counter_reg == 'd15);
+
+  assign f_r_b_done = (fetch_ram_counter_reg == 'd4 | not_object);
+  assign backward_done = (ram_addr_index_reg == 'd0);
+  assign f_r_b_start = (counter_reg == 'd0);
 
   //state
   wire IDLE_state                 = current_state == IDLE;
@@ -56,91 +63,116 @@ module DT(input 			clk,
   //wire
   wire  [7:0] min_temp_wire_1,min_temp_wire_2,min_temp_wire_3;
   wire  [7:0] min_temp_wire_b1,min_temp_wire_b2,min_temp_wire_b3,min_temp_wire_b4;
-  wire  [2:0] fetch_ram_counter_wire;
+  reg   [13:0] res_addr_wire;
   assign min_temp_wire_1 = FORWARD_state ? {(for_back_reg[0] > for_back_reg[1]) ? for_back_reg[1] : for_back_reg[0]} : 'd0;
   assign min_temp_wire_2 = FORWARD_state ? {(for_back_reg[2] > for_back_reg[3]) ? for_back_reg[3] : for_back_reg[2]} : 'd0;
   assign min_temp_wire_3 = FORWARD_state ? {(min_temp_wire_2 > min_temp_wire_1) ? min_temp_wire_1 : min_temp_wire_2} : 'd0;
 
   assign min_temp_wire_b1 = BACKWARD_state ? {(for_back_reg[0] > for_back_reg[1]) ? for_back_reg[1] : for_back_reg[0]} : 'd0;
-  assign min_temp_wire_b2 = BACKWARD_state ? {(for_back_reg[2] > for_back_reg[3]) ? for_back_reg[3] : for_back_reg[2]} : 'd0;
+  assign min_temp_wire_b2 = BACKWARD_state ? {(for_back_reg[2] > ref_and_temp_reg) ? ref_and_temp_reg : for_back_reg[2]} : 'd0;
   assign min_temp_wire_b3 = BACKWARD_state ? {(min_temp_wire_b2 > min_temp_wire_b1) ? min_temp_wire_b1 : min_temp_wire_b2} : 'd0;
-  assign min_temp_wire_b4 = delay_clock_reg ? {(min_temp_wire_b3_reg > ref_and_temp_reg) ? ref_and_temp_reg : min_temp_wire_b3_reg} : 'd0;
+  assign min_temp_wire_b4 = backward_start ? {(for_back_reg[3] > ref_and_temp_reg) ? ref_and_temp_reg : for_back_reg[3]} : 'd0;
 
-  assign f_r_f_done = (FETCH_REG_FORWARD_state & (fetch_ram_counter_reg == 'd3 | not_object));
-  assign forward_done = (ram_addr_index_reg == 'd16383);
-  assign f_r_f_start = (counter_reg == 'd15);
-
-  assign f_r_b_done = (FETCH_REG_BACKWARD_state & (fetch_ram_counter_reg == 'd4 | not_object));
-  assign backward_done = (ram_addr_index_reg == 'd0);
-  assign f_r_b_start = (counter_reg == 'd0);
-
-  assign fetch_ram_counter_wire = (FETCH_REG_FORWARD_state | FETCH_ROM_BACKWARD_state) ? delay_clock_reg ? 'd0 : fetch_ram_counter_reg + 'd1 : 'd0;
-  assign delay_clock_inverse = delay_clock_reg & (FETCH_ROM_BACKWARD_state | FETCH_ROM_FORWARD_state | BACKWARD_state | f_r_f_done | f_r_b_done);
-  
   //OUTPUT
   assign done = DONE_state;
   assign sti_rd = FETCH_ROM_FORWARD_state | FETCH_ROM_BACKWARD_state;
-  assign res_wr = FORWARD_state | BACKWARD_state;
-  assign res_rd = skip_f_flag ? 0 : (FETCH_REG_FORWARD_state | FETCH_REG_BACKWARD_state) ? 1 : 0;
+  assign res_wr = FORWARD_state | backward_start ;
+  assign res_rd = not_object ? 0 : (FETCH_REG_FORWARD_state | FETCH_REG_BACKWARD_state) ? 1 : 0;
 
   /*
           case (fetch_ram_counter_reg)
-            'd0:res_addr = (col_index_reg - 'd1) + 'd128 * (row_index_reg - 'd1);
-            'd1:res_addr = (col_index_reg) + 'd128 * (row_index_reg - 'd1);
-            'd2:res_addr = (col_index_reg + 'd1) + 'd128 * (row_index_reg - 'd1);
-            'd3:res_addr = ram_addr_index_reg - 'd1;
-            default: res_addr = 'd0;
+            'd0:res_addr_wire = (col_index_reg - 'd1) + 'd128 * (row_index_reg - 'd1);
+            'd1:res_addr_wire = (col_index_reg) + 'd128 * (row_index_reg - 'd1);
+            'd2:res_addr_wire = (col_index_reg + 'd1) + 'd128 * (row_index_reg - 'd1);
+            'd3:res_addr_wire = ram_addr_index_reg - 'd1;
+            default: res_addr_wire = 'd0;
         endcase
   */
-
-  //sti_addr
+/*
+  //pad_max_flag
   always @(*)
   begin
-    sti_addr = sti_rd ? rom_addr_index_reg : 'd0;
+    casex (res_addr_wire)
+      'bxxxxxxx0000000 :
+        pad_max_flag = (ram_addr_index_reg == 'bxxxxxxx1111111) ? 1 : 0;
+      'bxxxxxxx1111111 :
+        pad_max_flag = (ram_addr_index_reg == 'bxxxxxxx0000000) ? 1 : 0;
+      'b0000000xxxxxxx :
+        pad_max_flag = (ram_addr_index_reg == 'b1111111xxxxxxx) ? 1 : 0;
+      'b1111111xxxxxxx :
+        pad_max_flag = (ram_addr_index_reg == 'b0000000xxxxxxx) ? 1 : 0;
+      default:
+      begin
+        pad_max_flag = 0;
+      end
+    endcase
+  end
+  */
+    //pad_max_flag
+  always @(*)
+  begin
+    casex (res_addr_wire)
+      'bxxxxxxx0000000 :
+        pad_max_flag = (ram_addr_index_reg[6:0] == 'd127) ? 1 : 0;
+      'bxxxxxxx1111111 :
+        pad_max_flag = (ram_addr_index_reg[6:0] == 'd0) ? 1 : 0;
+      'b0000000xxxxxxx :
+        pad_max_flag = (ram_addr_index_reg[13:7] == 'd127) ? 1 : 0;
+      'b1111111xxxxxxx :
+        pad_max_flag = (ram_addr_index_reg[13:7] == 'd0) ? 1 : 0;
+      default:
+      begin
+        pad_max_flag = 0;
+      end
+    endcase
   end
 
-  //res_addr
+  //addr
+  assign sti_addr = sti_rd ? rom_addr_index_reg : 'd0;
+  assign res_addr = res_addr_wire;
+
+  //res_addr_wire
   always @(*)
   begin
     if (FETCH_REG_FORWARD_state)
     begin
-      case (fetch_ram_counter_wire)
+      case (fetch_ram_counter_reg)
         'd0:
-          res_addr = ram_addr_index_reg - 'd129;
+          res_addr_wire = ram_addr_index_reg - 'd129;
         'd1:
-          res_addr = ram_addr_index_reg - 'd128;
+          res_addr_wire = ram_addr_index_reg - 'd128;
         'd2:
-          res_addr = ram_addr_index_reg - 'd127;
+          res_addr_wire = ram_addr_index_reg - 'd127;
         'd3:
-          res_addr = ram_addr_index_reg - 'd1;
+          res_addr_wire = ram_addr_index_reg - 'd1;
         default:
-          res_addr = 'd0;
+          res_addr_wire = 'd0;
       endcase
     end
-    else if(fetch_ram_counter_wire)
+    else if(FETCH_REG_BACKWARD_state)
     begin
-      case (fetch_ram_counter_wire)
+      case (fetch_ram_counter_reg)
         'd0:
-          res_addr = ram_addr_index_reg + 'd1;
+          res_addr_wire = ram_addr_index_reg + 'd1;
         'd1:
-          res_addr = ram_addr_index_reg + 'd127;
+          res_addr_wire = ram_addr_index_reg + 'd127;
         'd2:
-          res_addr = ram_addr_index_reg + 'd128;
+          res_addr_wire = ram_addr_index_reg + 'd128;
         'd3:
-          res_addr = ram_addr_index_reg + 'd129;
+          res_addr_wire = ram_addr_index_reg + 'd129;
         'd4:
-          res_addr = ram_addr_index_reg;
+          res_addr_wire = ram_addr_index_reg;
         default:
-          res_addr = 'd0;
+          res_addr_wire = 'd0;
       endcase
     end
     else if(BACKWARD_state | FORWARD_state)
     begin
-      res_addr = ram_addr_index_reg;
+      res_addr_wire = ram_addr_index_reg;
     end
     else
     begin
-      res_addr = 'd0;
+      res_addr_wire = 'd0;
     end
   end
 
@@ -151,7 +183,7 @@ module DT(input 			clk,
     begin
       res_do = skip_f_flag ? sti_di_reg[0] : not_object ? 'd0 : min_temp_wire_3 + 'd1;
     end
-    else if(BACKWARD_state & delay_clock_reg)
+    else if(backward_start)
     begin
       res_do = skip_b_flag ? sti_di_reg[15] : not_object ? 'd0 : min_temp_wire_b4;
     end
@@ -176,7 +208,7 @@ module DT(input 			clk,
       end
       FETCH_ROM_FORWARD:
       begin
-        next_state = delay_clock_inverse ? skip_f_flag ? FORWARD : FETCH_REG_FORWARD : FETCH_ROM_FORWARD;
+        next_state = skip_f_flag ? FORWARD : FETCH_REG_FORWARD;
       end
       FETCH_REG_FORWARD:
       begin
@@ -200,7 +232,7 @@ module DT(input 			clk,
       end
       BACKWARD:
       begin
-        next_state = delay_clock_reg ? {backward_done ? DONE : f_r_b_start ? FETCH_ROM_BACKWARD : FETCH_REG_BACKWARD} : BACKWARD;
+        next_state = backward_start ? {backward_done ? DONE : f_r_b_start ? FETCH_ROM_BACKWARD : FETCH_REG_BACKWARD} : BACKWARD;
       end
       DONE:
       begin
@@ -213,24 +245,16 @@ module DT(input 			clk,
     endcase
   end
 
-  //delay_clock_reg
+  //backward_start
   always @(posedge clk or negedge reset)
   begin
     if(!reset)
     begin
-      delay_clock_reg <= 0;
-    end
-    else if(delay_clock_inverse)
-    begin
-      delay_clock_reg <= 0 ;
-    end
-    else if(FETCH_ROM_FORWARD_state | FETCH_ROM_BACKWARD_state | BACKWARD_state | FETCH_REG_BACKWARD_state | FETCH_ROM_FORWARD_state)
-    begin
-      delay_clock_reg <= 1 ;
+      backward_start <= 0;
     end
     else
     begin
-      delay_clock_reg <= 0 ;
+      backward_start <= BACKWARD_state ;
     end
   end
 
@@ -268,7 +292,7 @@ module DT(input 			clk,
     end
     else if(FETCH_REG_FORWARD_state | FETCH_REG_BACKWARD_state)
     begin
-      fetch_ram_counter_reg <= fetch_ram_counter_wire;
+      fetch_ram_counter_reg <= fetch_ram_counter_reg + 'd1;
     end
     else if(FORWARD_state | BACKWARD_state)
     begin
@@ -276,7 +300,7 @@ module DT(input 			clk,
     end
     else
     begin
-      fetch_ram_counter_reg <= fetch_ram_counter_wire;
+      fetch_ram_counter_reg <= fetch_ram_counter_reg;
     end
   end
 
@@ -287,7 +311,7 @@ module DT(input 			clk,
     begin
       rom_addr_index_reg <= 'd0;
     end
-    else if(FETCH_ROM_FORWARD_state & delay_clock_reg)
+    else if(FETCH_ROM_FORWARD_state)
     begin
       rom_addr_index_reg <= rom_addr_index_reg + 'd1;
     end
@@ -360,13 +384,13 @@ module DT(input 			clk,
     end
     else if(FETCH_REG_FORWARD_state)
     begin
-      for_back_reg[fetch_ram_counter_reg] <= delay_clock_reg ? (skip_f_flag ? 'd127 : res_di) : 'd0;
+      for_back_reg[fetch_ram_counter_reg] <= not_object ? 'd0 : pad_max_flag ? 'd127 : res_di;
     end
     else if(FETCH_REG_BACKWARD_state)
     begin
-      for_back_reg[fetch_ram_counter_reg] <= delay_clock_reg ? (skip_f_flag ? 'd127 : res_di + 'd1) : 'd0;
+      for_back_reg[fetch_ram_counter_reg] <= not_object ? 'd0 : pad_max_flag ? 'd127 : res_di + 'd1;
     end
-    else if(FORWARD_state | BACKWARD_state)
+    else if(FORWARD_state | backward_start)
     begin
       for(i=0;i<4;i=i+1)
       begin
@@ -393,22 +417,17 @@ module DT(input 			clk,
     begin
       ref_and_temp_reg <= res_di;
     end
+    else if(backward_start)
+    begin
+      ref_and_temp_reg <= 'd0;
+    end
+    else if(BACKWARD_state)
+    begin
+      ref_and_temp_reg <= min_temp_wire_b3;
+    end
     else
     begin
       ref_and_temp_reg <= ref_and_temp_reg;
-    end
-  end
-
-  //min_temp_wire_b3_reg
-  always @(posedge clk or negedge reset)
-  begin
-    if(!reset)
-    begin
-      min_temp_wire_b3_reg <= 'd0;
-    end
-    else
-    begin
-      min_temp_wire_b3_reg <= min_temp_wire_b3;
     end
   end
 
