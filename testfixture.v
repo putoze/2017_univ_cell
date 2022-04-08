@@ -2,7 +2,7 @@
 `define CYCLE      10.0          	  // Modify your clock period here
 `define SDFFILE    "../SYN/DT_syn.sdf"	  // Modify your sdf file name
 `define End_CYCLE  100000000             // Modify cycle times once your design need more cycle times!
-`define  TB1
+`define  TB2
 
 `ifdef TB1
 	`define PAT        "D:/IC_contest/2017_IC_CONTEST_Distance_transform/dat/Geometry_sti.dat"
@@ -12,6 +12,10 @@
 `define PAT        "D:/IC_contest/2017_IC_CONTEST_Distance_transform/dat/ICC17_sti.dat"
 	`define FWEXP        "D:/IC_contest/2017_IC_CONTEST_Distance_transform/dat/ICC17_fwexp.dat"
 	`define BCEXP        "D:/IC_contest/2017_IC_CONTEST_Distance_transform/dat/ICC17_bcexp.dat" //"D:/IC_contest/2017_univ_cell/2017_IC_CONTEST_Distance_transform/dat/ICC17_bcexp.dat"
+       `else
+`define PAT        "D:/IC_contest/2017_IC_CONTEST_Distance_transform/dat/NARLCIC_sti.dat"
+	`define FWEXP        "D:/IC_contest/2017_IC_CONTEST_Distance_transform/dat/NARLCIC_fwexp.dat"
+	`define BCEXP        "D:/IC_contest/2017_IC_CONTEST_Distance_transform/dat/NARLCIC_bcexp.dat"
 `endif
 
        module testfixture;
