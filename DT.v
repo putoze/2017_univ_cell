@@ -22,44 +22,59 @@ module DT    (input 		     	    clk,
   parameter  DONE                = 4'd8;
 
   //Registers
+  reg       eq_reg;
+  reg[2:0]  fetch_ram_counter_reg;
+  reg[3:0]  current_state,next_state;
   reg[3:0]  counter_reg;
+  reg[7:0]  for_back_reg;
   reg[9:0]  rom_addr_index_reg;
   reg[13:0] ram_addr_index_reg;
-  reg[2:0]  fetch_ram_counter_reg;
   reg[15:0] sti_di_reg;
-  reg[7:0]  for_back_reg;
-  reg[3:0]  current_state,next_state;
 
   //flag
   wire  f_r_f_done,forward_done,f_r_f_start;
   wire  f_r_b_done,backward_done,f_r_b_start;
-  wire  skip_f_flag = rom_addr_index_reg == 'd0;
-  wire  skip_b_flag = rom_addr_index_reg == 'd1023;
-  wire  not_object = sti_di_reg[counter_reg] == 0 ;
   reg   pad_max_flag;
-  wire  gt_flag = for_back_reg >= res_di;
-
-  assign f_r_f_done = (fetch_ram_counter_reg == 'd3 | not_object);
-  assign forward_done = (ram_addr_index_reg == 'd16383);
-  assign f_r_f_start = (counter_reg == 'd0);
-
-  assign f_r_b_done = (fetch_ram_counter_reg == 'd4 | not_object);
-  assign backward_done = (ram_addr_index_reg == 'd0);
-  assign f_r_b_start = (counter_reg == 'd15);
-
-  //state
-  //wire IDLE_state                 = current_state == IDLE;
-  wire FETCH_ROM_FORWARD_state    = current_state == FETCH_ROM_FORWARD;
-  wire FETCH_REG_FORWARD_state    = current_state == FETCH_REG_FORWARD;
-  wire FORWARD_state              = current_state == FORWARD;
-  wire BACKWARD_PREPROCESS_state  = current_state == BACKWARD_PREPROCESS;
-  wire FETCH_ROM_BACKWARD_state   = current_state == FETCH_ROM_BACKWARD;
-  wire FETCH_REG_BACKWARD_state   = current_state == FETCH_REG_BACKWARD;
-  wire BACKWARD_state             = current_state == BACKWARD;
-  wire DONE_state                 = current_state == DONE;
+  wire  skip_f_flag,skip_b_flag,not_object,gt_flag ;
 
   //wire
   reg  [7:0] min_temp_wire;
+
+  //state
+  //wire IDLE_state                 = current_state == IDLE;
+  wire FETCH_ROM_FORWARD_state    ;
+  wire FETCH_REG_FORWARD_state    ;
+  wire FORWARD_state              ;
+  wire BACKWARD_PREPROCESS_state  ;
+  wire FETCH_ROM_BACKWARD_state   ;
+  wire FETCH_REG_BACKWARD_state   ;
+  wire BACKWARD_state             ;
+  wire DONE_state                 ;
+
+  assign FETCH_ROM_FORWARD_state    = current_state == FETCH_ROM_FORWARD;
+  assign FETCH_REG_FORWARD_state    = current_state == FETCH_REG_FORWARD;
+  assign FORWARD_state              = current_state == FORWARD;
+  assign BACKWARD_PREPROCESS_state  = current_state == BACKWARD_PREPROCESS;
+  assign FETCH_ROM_BACKWARD_state   = current_state == FETCH_ROM_BACKWARD;
+  assign FETCH_REG_BACKWARD_state   = current_state == FETCH_REG_BACKWARD;
+  assign BACKWARD_state             = current_state == BACKWARD;
+  assign DONE_state                 = current_state == DONE;
+
+  assign  skip_f_flag = rom_addr_index_reg == 'd0;
+  assign  skip_b_flag = rom_addr_index_reg == 'd1023;
+  assign  not_object = sti_di_reg[counter_reg] == 0 ;
+  assign  gt_flag = for_back_reg >= res_di;
+
+  assign f_r_f_done = (fetch_ram_counter_reg == 'd3 & FETCH_REG_FORWARD_state);
+  assign forward_done = (ram_addr_index_reg == 'd16383);
+  assign f_r_f_start = (counter_reg == 'd0);
+
+  assign f_r_b_done = (fetch_ram_counter_reg == 'd4 & FETCH_REG_BACKWARD_state);
+  assign backward_done = (ram_addr_index_reg == 'd0);
+  assign f_r_b_start = (counter_reg == 'd15);
+
+  //sti_addr
+  assign sti_addr = sti_rd ? rom_addr_index_reg : 'd0;
 
   //OUTPUT
   assign done = DONE_state;
@@ -78,55 +93,7 @@ module DT    (input 		     	    clk,
       res_wr <= FORWARD_state | BACKWARD_state;
     end
   end
-  /*
-          case (fetch_ram_counter_reg)
-            'd0:res_addr = (col_index_reg - 'd1) + 'd128 * (row_index_reg - 'd1);
-            'd1:res_addr = (col_index_reg) + 'd128 * (row_index_reg - 'd1);
-            'd2:res_addr = (col_index_reg + 'd1) + 'd128 * (row_index_reg - 'd1);
-            'd3:res_addr = ram_addr_index_reg - 'd1;
-            default: res_addr = 'd0;
-        endcase
-  */
-  /*
-    //pad_max_flag
-    always @(*)
-    begin
-      casex (res_addr)
-        'bxxxxxxx0000000 :
-          pad_max_flag = (ram_addr_index_reg == 'bxxxxxxx1111111) ? 1 : 0;
-        'bxxxxxxx1111111 :
-          pad_max_flag = (ram_addr_index_reg == 'bxxxxxxx0000000) ? 1 : 0;
-        'b0000000xxxxxxx :
-          pad_max_flag = (ram_addr_index_reg == 'b1111111xxxxxxx) ? 1 : 0;
-        'b1111111xxxxxxx :
-          pad_max_flag = (ram_addr_index_reg == 'b0000000xxxxxxx) ? 1 : 0;
-        default:
-        begin
-          pad_max_flag = 0;
-        end
-      endcase
-    end
-    */
-  /*
-  //pad_max_flag
-  always @(*)
-  begin
-  casex (res_addr)
-    'bxxxxxxx0000000 :
-      pad_max_flag = (ram_addr_index_reg[6:0] == 'd127) ? 1 : 0;
-    'bxxxxxxx1111111 :
-      pad_max_flag = (ram_addr_index_reg[6:0] == 'd0) ? 1 : 0;
-    'b0000000xxxxxxx :
-      pad_max_flag = (ram_addr_index_reg[13:7] == 'd127) ? 1 : 0;
-    'b1111111xxxxxxx :
-      pad_max_flag = (ram_addr_index_reg[13:7] == 'd0) ? 1 : 0;
-    default:
-    begin
-      pad_max_flag = 0;
-    end
-  endcase
-  end
-  */
+
   //pad_max_flag
   always @(*)
   begin
@@ -151,9 +118,6 @@ module DT    (input 		     	    clk,
       pad_max_flag = 0;
     end
   end
-
-  //addr
-  assign sti_addr = sti_rd ? rom_addr_index_reg : 'd0;
 
   //res_addr
   always @(*)
@@ -209,7 +173,7 @@ module DT    (input 		     	    clk,
     end
     else if(BACKWARD_state)
     begin
-      res_do = skip_b_flag ? sti_di_reg[15] : not_object ? 'd0 : for_back_reg + 'd1;
+      res_do = skip_b_flag ? sti_di_reg[15] : not_object ? 'd0 : eq_reg ? for_back_reg : for_back_reg + 'd1;
     end
     else
     begin
@@ -236,7 +200,7 @@ module DT    (input 		     	    clk,
       end
       FETCH_REG_FORWARD:
       begin
-        next_state = f_r_f_done ? FORWARD : FETCH_REG_FORWARD;
+        next_state = not_object ? FORWARD : f_r_f_done ? FORWARD : FETCH_REG_FORWARD;
       end
       FORWARD:
       begin
@@ -252,7 +216,7 @@ module DT    (input 		     	    clk,
       end
       FETCH_REG_BACKWARD:
       begin
-        next_state = f_r_b_done ? BACKWARD : FETCH_REG_BACKWARD;
+        next_state = not_object ? BACKWARD : f_r_b_done ? BACKWARD : FETCH_REG_BACKWARD;
       end
       BACKWARD:
       begin
@@ -438,7 +402,7 @@ module DT    (input 		     	    clk,
         'd3:
           min_temp_wire = pad_max_flag ? for_back_reg : gt_flag ? res_di : for_back_reg;
         'd4:
-          min_temp_wire = gt_flag ? res_di - 'd1 : for_back_reg;
+          min_temp_wire = gt_flag ? res_di : for_back_reg;
         default:
           min_temp_wire = 'd0;
       endcase
@@ -446,6 +410,23 @@ module DT    (input 		     	    clk,
     else
     begin
       min_temp_wire = 'd0;
+    end
+  end
+
+  //eq_reg
+  always @(posedge clk or negedge reset)
+  begin
+    if(!reset)
+    begin
+      eq_reg <= 0;
+    end
+    else if(f_r_b_done)
+    begin
+      eq_reg <= gt_flag ? 1 : 0;
+    end
+    else
+    begin
+      eq_reg <= 0;
     end
   end
 
