@@ -2,7 +2,7 @@
 `define CYCLE      10.0          	  // Modify your clock period here
 `define SDFFILE    "../SYN/DT_syn.sdf"	  // Modify your sdf file name
 `define End_CYCLE  100000000             // Modify cycle times once your design need more cycle times!
-`define TB1
+`define TB2
 
 `ifdef TB1
 	`define PAT        "D:/IC_contest/2017_IC_CONTEST_Distance_transform/dat/Geometry_sti.dat"

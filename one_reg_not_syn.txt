@@ -65,11 +65,11 @@ module DT    (input 		     	    clk,
   assign not_object = sti_di_reg[counter_reg] == 0 ;
   assign gt_flag = for_back_reg >= res_di;
 
-  assign f_r_f_done = (fetch_ram_counter_reg == 'd3);
+  assign f_r_f_done = (fetch_ram_counter_reg == 'd3 & FETCH_REG_FORWARD_state);
   assign forward_done = (ram_addr_index_reg == 'd16383);
   assign f_r_f_start = (counter_reg == 'd0);
 
-  assign f_r_b_done = (fetch_ram_counter_reg == 'd4);
+  assign f_r_b_done = (fetch_ram_counter_reg == 'd4 & FETCH_REG_BACKWARD_state);
   assign backward_done = (ram_addr_index_reg == 'd0);
   assign f_r_b_start = (counter_reg == 'd15);
 
